@@ -47,6 +47,9 @@ public class UserService {
     public Mono<Boolean> saveUserData(User user, String userUID, String imageUrl) {
         return Mono.fromCallable(() -> {
             Map<String, Object> userData = new HashMap<>();
+            userData.put("firstname", user.getFirstName());
+            userData.put("lastname", user.getLastName());
+            userData.put("gender", user.getGender());
             userData.put("username", user.getUsername());
             userData.put("email", user.getEmail());
             userData.put("photoUserProfile", imageUrl); // almacena la URL de la imagen
@@ -62,6 +65,19 @@ public class UserService {
             ApiFuture<DocumentSnapshot> future = getUserCollection().document(documentId).get();
             DocumentSnapshot document = future.get(); // operación bloqueante
 
+
+            if (document.exists()) {
+                return document.getData();
+            } else {
+                throw new RuntimeException("Documento no encontrado");
+            }
+        }).subscribeOn(Schedulers.boundedElastic()); // evitar bloquear el hilo reactor principal
+    }
+
+    public Mono<Map<String, Object>> getDataProfile(String userUID) {
+        return Mono.fromCallable(() -> {
+            ApiFuture<DocumentSnapshot> future = getUserCollection().document(userUID).get();
+            DocumentSnapshot document = future.get(); // operación bloqueante
 
             if (document.exists()) {
                 return document.getData();

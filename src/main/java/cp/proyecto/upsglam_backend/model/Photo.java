@@ -5,6 +5,7 @@ import java.util.List;
 public class Photo {
 
     private String urlPhoto;
+    private String urlPhotoFilter;
     private List<Like> likes;
     private List<Comment> comments;
 
@@ -12,8 +13,9 @@ public class Photo {
 
     }
 
-    public Photo(String urlPhoto, List<Like> likes, List<Comment> comments) {
+    public Photo(String urlPhoto, String urlPhotoFilter, List<Like> likes, List<Comment> comments) {
         this.urlPhoto = urlPhoto;
+        this.urlPhotoFilter = urlPhotoFilter;
         this.likes = likes;
         this.comments = comments;
     }
@@ -24,6 +26,14 @@ public class Photo {
 
     public void setUrlPhoto(String urlPhoto) {
         this.urlPhoto = urlPhoto;
+    }
+
+    public String getUrlPhotoFilter() {
+        return urlPhotoFilter;
+    }
+
+    public void setUrlPhotoFilter(String urlPhotoFilter) {
+        this.urlPhotoFilter = urlPhotoFilter;
     }
 
     public List<Like> getLikes() {

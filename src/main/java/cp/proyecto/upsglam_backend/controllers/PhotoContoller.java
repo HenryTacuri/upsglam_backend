@@ -1,5 +1,6 @@
 package cp.proyecto.upsglam_backend.controllers;
 
+import cp.proyecto.upsglam_backend.dto.PhotoResponse;
 import cp.proyecto.upsglam_backend.services.PhotoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -27,8 +28,8 @@ public class PhotoContoller {
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Mono<ResponseEntity<Map<String, Object>>> createUser(@RequestPart("userUID") String userUID, @RequestPart("photoUser") MultipartFile photoUser) {
-        return photoService.saveUserPhoto(userUID, photoUser)
+    public Mono<ResponseEntity<Map<String, Object>>> createUser(@RequestPart("userUID") String userUID, @RequestPart("photoUser") MultipartFile photoUser, @RequestPart("imageFiler") MultipartFile imageFiler) {
+        return photoService.saveUserPhoto(userUID, photoUser, imageFiler)
                 .map(photoResp -> {
                     Map<String, Object> body = new HashMap<>();
                     body.put("photos", photoResp.userPhotos().getPhotos());
@@ -64,6 +65,27 @@ public class PhotoContoller {
         return photoService
                 .getAllUserPhotos()
                 .collectList();
+    }
+
+    @PostMapping("/updatePhoto")
+    public Mono<PhotoResponse> actualizarFoto(
+            @RequestPart("userUID") String userUID,
+            @RequestPart("oldUrlPhoto") String oldUrl,
+            @RequestPart("photo") MultipartFile photo
+    ) {
+        return photoService.updateUserPhoto(userUID, oldUrl, photo);
+    }
+
+    @DeleteMapping("/deletePhoto")
+    public Mono<Map<String, String>> eliminarFoto(@RequestBody Map<String, String> dataDeletePhoto) {
+        String userUID = dataDeletePhoto.get("userUID");
+        String urlPhoto = dataDeletePhoto.get("urlPhoto");
+
+        return photoService.deleteUserPhoto(userUID, urlPhoto)
+                .thenReturn(Map.of(
+                        "status", "ok",
+                        "message", "Foto eliminada correctamente"
+                ));
     }
 
 }
