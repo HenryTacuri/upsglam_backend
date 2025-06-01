@@ -12,7 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class ProcessPhotoService {
 
     private final RestTemplate restTemplate = new RestTemplate();
-    private final String flaskUrl = "http://localhost:5000/procesar-imagen";
+    private final String flaskUrl = "http://python_app:5000/procesar-imagen";
 
     public byte[] procesarImagenEnFlask(MultipartFile imagen, String tipoFiltro) throws Exception {
         // Convertimos el MultipartFile a un recurso con nombre y tamaño
