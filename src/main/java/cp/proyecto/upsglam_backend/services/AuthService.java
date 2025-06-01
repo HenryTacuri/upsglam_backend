@@ -56,6 +56,7 @@ public class AuthService {
         }).subscribeOn(Schedulers.boundedElastic()); // Ejecuta en un hilo separado
     }
 
+
     public Mono<FirebaseSignInResponse> login(String email, String password) {
         FirebaseSignInRequest requestBody = new FirebaseSignInRequest(email, password, true);
 
@@ -78,4 +79,17 @@ public class AuthService {
                 .bodyToMono(FirebaseSignInResponse.class);
     }
 
+
+    public Mono<Void> logoutUser(String uid) {
+        return Mono.fromCallable(() -> {
+                    FirebaseAuth.getInstance().revokeRefreshTokens(uid);
+                    return true;
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .then();
+    }
+
+
 }
+
+

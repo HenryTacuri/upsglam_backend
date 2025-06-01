@@ -69,4 +69,23 @@ public class AuthController {
     }
 
 
+
+    @PostMapping("/logout")
+    public Mono<ResponseEntity<Map<String, String>>> logoutUser(@RequestBody Map<String, String> payload) {
+        String uid = payload.get("userUID");
+        return authService.logoutUser(uid)
+                .then(Mono.just(
+                        ResponseEntity.ok(Map.of("message", "Logout exitoso"))))
+                .onErrorResume(ex -> {
+                    String errorMsg = (ex instanceof FirebaseAuthException)
+                            ? ex.getMessage()
+                            : "Error inesperado al procesar logout.";
+                    return Mono.just(
+                            ResponseEntity
+                                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                    .body(Map.of("error", "Error al revocar tokens: " + errorMsg))
+                    );
+                });
+    }
+
 }

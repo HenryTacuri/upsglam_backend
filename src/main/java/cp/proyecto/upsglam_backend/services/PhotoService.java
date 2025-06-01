@@ -30,8 +30,13 @@ public class PhotoService {
     @Autowired
     private Firestore firestore;
 
+
     private CollectionReference getUserCollection() {
         return firestore.collection("photos");
+    }
+
+    private CollectionReference getUserDataCollection() {
+        return firestore.collection("users");
     }
 
     public Mono<PhotoResponse> saveUserPhoto(String userUID, MultipartFile userPhotoProfile, MultipartFile imageFiler) {
@@ -77,65 +82,68 @@ public class PhotoService {
     }
 
     public Mono<PhotoResponse> savePhotoData(String userUID, String imageUrl, String imageFilter) {
-        return Mono.fromCallable(() -> {
-            List<Comment> comments = new ArrayList<>();
-            List<Like> likes = new ArrayList<>();
+        return getUsername(userUID)
+                .flatMap(username -> {
+                    return Mono.fromCallable(() -> {
+                                List<Like> likes = new ArrayList<>();
+                                Like like = new Like();
+                                like.setUserUID("dfadsfads");
+                                like.setUsername(username[0]);
+                                like.setPhotoUserProfile(
+                                        "https://firebasestorage.googleapis.com/v0/b/proyecto-interciclo-cp.firebasestorage.app/o/person.png?alt=media&token=0f36c0d8-be05-48e3-a70b-0f0bab2f1743"
+                                );
+                                likes.add(like);
 
-            Like like = new Like();
-            like.setUserUID("OyMjfj7yb7dVARDzsAVow2CckL12");
-            like.setUsername("henry21");
-            like.setPhotoUserProfile("https://firebasestorage.googleapis.com/v0/b/proyecto-interciclo-cp.firebasestorage.app/o/person.png?alt=media&token=0f36c0d8-be05-48e3-a70b-0f0bab2f1743");
-            likes.add(like);
+                                List<Comment> comments = new ArrayList<>();
+                                Comment comment = new Comment();
+                                comment.setUserUID("dfadsfads");
+                                comment.setUsername(username[0]);
+                                comment.setPhotoUserProfile(
+                                        "https://firebasestorage.googleapis.com/v0/b/proyecto-interciclo-cp.firebasestorage.app/o/person.png?alt=media&token=0f36c0d8-be05-48e3-a70b-0f0bab2f1743"
+                                );
+                                comment.setComment("Fotografía con el filtro A");
+                                comments.add(comment);
 
-            Comment comment = new Comment();
-            comment.setUserUID("OyMjfj7yb7dVARDzsAVow2CckL12");
-            comment.setUsername("henry21");
-            comment.setPhotoUserProfile("https://firebasestorage.googleapis.com/v0/b/proyecto-interciclo-cp.firebasestorage.app/o/person.png?alt=media&token=0f36c0d8-be05-48e3-a70b-0f0bab2f1743");
-            comment.setComment("Fotografía con el filtro A");
-            comments.add(comment);
+                                Photo photo = new Photo();
+                                photo.setUrlPhoto(imageUrl);
+                                photo.setUrlPhotoFilter(imageFilter);
+                                photo.setLikes(likes);
+                                photo.setComments(comments);
 
-            Photo photo = new Photo();
-            photo.setUrlPhoto(imageUrl);
-            photo.setUrlPhotoFilter(imageFilter);
-            photo.setLikes(likes);
-            photo.setComments(comments);
+                                Map<String, Object> photoMap = new HashMap<>();
+                                photoMap.put("urlPhoto", photo.getUrlPhoto());
+                                photoMap.put("urlPhotoFilter", photo.getUrlPhotoFilter());
+                                photoMap.put("likes", photo.getLikes());
+                                photoMap.put("comments", photo.getComments());
 
-            // 2) Convierte esa Photo a un Map para usarla en arrayUnion:
-            Map<String,Object> photoMap = new HashMap<>();
-            photoMap.put("urlPhoto",    photo.getUrlPhoto());
-            photoMap.put("urlPhotoFilter", photo.getUrlPhotoFilter());
-            photoMap.put("likes",       photo.getLikes());
-            photoMap.put("comments",    photo.getComments());
+                                DocumentReference docRef = getUserCollection().document(userUID);
 
-            DocumentReference docRef = getUserCollection().document(userUID);
-
-            try {
-                // 3) Intenta leer el documento
-                DocumentSnapshot snap = docRef.get().get();
-                if (snap.exists()) {
-                    // 4a) Si existe, actualiza sólo el array "photos"
-                    docRef.update("photos", FieldValue.arrayUnion(photoMap)).get();
-                    // Opcional: refresca el estado si quieres devolver el objeto completo
-                    UserPhotos updated = snap.toObject(UserPhotos.class);
-                    updated.getPhotos().add(photo);
-                    updated.setUserUID("OyMjfj7yb7dVARDzsAVow2CckL12");
-                    updated.setUsername("henry21");
-                    updated.setPhotoUserProfile("https://firebasestorage.googleapis.com/v0/b/proyecto-interciclo-cp.firebasestorage.app/o/person.png?alt=media&token=0f36c0d8-be05-48e3-a70b-0f0bab2f1743");                    return new PhotoResponse(updated);
-                } else {
-                    // 4b) Si NO existe, crea el documento con tu lista inicial
-                    UserPhotos userPhotos = new UserPhotos();
-                    userPhotos.setUserUID("OyMjfj7yb7dVARDzsAVow2CckL12");
-                    userPhotos.setUsername("henry21");
-                    userPhotos.setPhotoUserProfile("https://firebasestorage.googleapis.com/v0/b/proyecto-interciclo-cp.firebasestorage.app/o/person.png?alt=media&token=0f36c0d8-be05-48e3-a70b-0f0bab2f1743");
-                    userPhotos.setPhotos(Collections.singletonList(photo));
-                    docRef.set(userPhotos).get();
-                    return new PhotoResponse(userPhotos);
-                }
-            } catch (ExecutionException | InterruptedException e) {
-                throw new RuntimeException("Error al guardar foto en Firestore", e);
-            }
-        })
-        .subscribeOn(Schedulers.boundedElastic());
+                                try {
+                                    DocumentSnapshot snap = docRef.get().get(); // operación bloqueante
+                                    if (snap.exists()) {
+                                        docRef.update("photos", FieldValue.arrayUnion(photoMap)).get();
+                                        UserPhotos updated = snap.toObject(UserPhotos.class);
+                                        updated.getPhotos().add(photo);
+                                        updated.setUserUID(userUID);
+                                        updated.setUsername(username[0]);
+                                        updated.setPhotoUserProfile(username[1]);
+                                        return new PhotoResponse(updated);
+                                    } else {
+                                        UserPhotos newUserPhotos = new UserPhotos();
+                                        newUserPhotos.setUserUID(userUID);
+                                        newUserPhotos.setUsername(username[0]);
+                                        newUserPhotos.setPhotoUserProfile(username[1]);
+                                        newUserPhotos.setPhotos(Collections.singletonList(photo));
+                                        docRef.set(newUserPhotos).get();
+                                        return new PhotoResponse(newUserPhotos);
+                                    }
+                                } catch (ExecutionException | InterruptedException e) {
+                                    throw new RuntimeException("Error al guardar foto en Firestore", e);
+                                }
+                            })
+                            .subscribeOn(Schedulers.boundedElastic());
+                })
+                .onErrorMap(ex -> new RuntimeException("No se pudo obtener el username o guardar la foto: " + ex.getMessage(), ex));
     }
 
     public Mono<Map<String, Object>> getUserPhotos(String userUID) {
@@ -253,6 +261,21 @@ public class PhotoService {
         } catch (Exception e) {
             throw new RuntimeException("Error al eliminar imagen del Storage", e);
         }
+    }
+
+    public Mono<String[]> getUsername(String documentId) {
+        return Mono.fromCallable(() -> {
+                    ApiFuture<DocumentSnapshot> future = getUserDataCollection()
+                            .document(documentId)
+                            .get();
+                    DocumentSnapshot document = future.get();
+                    String dataUser[] = new String[2];
+                    dataUser[0] = document.getString("username");
+                    dataUser[1] = document.getString("photoUserProfile");
+                    return dataUser;
+        })
+                .subscribeOn(Schedulers.boundedElastic());
+
     }
 
 }
