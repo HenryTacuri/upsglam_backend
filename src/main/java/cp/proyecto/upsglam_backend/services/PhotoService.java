@@ -1,6 +1,7 @@
 package cp.proyecto.upsglam_backend.services;
 
 import com.google.api.core.ApiFuture;
+import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.*;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Bucket;
@@ -20,6 +21,7 @@ import reactor.core.scheduler.Schedulers;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -29,6 +31,8 @@ public class PhotoService {
 
     @Autowired
     private Firestore firestore;
+
+    private Instant date;
 
 
     private CollectionReference getUserCollection() {
@@ -109,12 +113,14 @@ public class PhotoService {
                                 photo.setUrlPhotoFilter(imageFilter);
                                 photo.setLikes(likes);
                                 photo.setComments(comments);
+                                photo.setDate(Timestamp.now());
 
                                 Map<String, Object> photoMap = new HashMap<>();
                                 photoMap.put("urlPhoto", photo.getUrlPhoto());
                                 photoMap.put("urlPhotoFilter", photo.getUrlPhotoFilter());
                                 photoMap.put("likes", photo.getLikes());
                                 photoMap.put("comments", photo.getComments());
+                                photoMap.put("date", Timestamp.now());
 
                                 DocumentReference docRef = getUserCollection().document(userUID);
 
@@ -196,6 +202,7 @@ public class PhotoService {
             for (Photo photo : userPhotos.getPhotos()) {
                 if (photo.getUrlPhoto().equals(oldUrlPhoto)) {
                     photo.setUrlPhotoFilter(newUrlPhoto); // Actualiza solo la URL
+                    photo.setDate(Timestamp.now());
                     found = true;
                 }
                 updatedPhotos.add(photo);
